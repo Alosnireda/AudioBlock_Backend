@@ -40,7 +40,7 @@ the API still serves requests, just without background song processing.
 | Web framework              | Express 5                                                                               |
 | ORM / database             | TypeORM 0.3 + PostgreSQL (`pg`)                                                         |
 | Validation                 | `class-validator` + `class-transformer` (DTO pattern)                                   |
-| Auth                       | `jsonwebtoken`, `bcrypt` (email/password), `ethers` (EVM wallet-signature verification) |
+| Auth                       | `jsonwebtoken`, `bcrypt` (email/password + TOTP 2FA), Privy (delegated auth, ES256 JWT via JWKS), `ethers` (legacy EVM wallet-signature verification) |
 | File upload                | `multer` (chunked audio upload, profile images, cover art)                              |
 | Media processing           | `fluent-ffmpeg` (HLS transcoding; requires the system `ffmpeg` binary)                  |
 | Object storage             | AWS S3 (`@aws-sdk/client-s3`)                                                           |
@@ -48,29 +48,34 @@ the API still serves requests, just without background song processing.
 | Queueing                   | RabbitMQ (`amqplib`) — async song-processing jobs                                       |
 | Caching                    | Redis (`ioredis`) — login nonces, signed-manifest cache, OAuth state                    |
 | On-chain (Stellar/Soroban) | `@stellar/stellar-sdk` — transaction building, simulation, and relay                    |
-| On-chain (EVM, legacy)     | `ethers`, Dynamic Labs MPC wallet service                                               |
+| On-chain (EVM, legacy)     | `ethers`, Dynamic Labs MPC wallet service — optional legacy path behind the `AUTH_MODE` flag; Stellar/Soroban is the primary chain |
 
 ## Project Structure
 
 ```
 src/
-├── index.ts              # entry point: bootstraps DB, server, RabbitMQ, worker
-├── app.ts                # Express app: middleware, route mounting, error handlers
-├── config/                # db, redis, rabbitmq, s3, soroban, dynamic (EVM) clients
-├── controllers/           # one per resource: Auth, ArtistProfile, ArtistOnChain,
-│                           #   Song, Upload, User, Wallet
+├── index.ts               # entry point: bootstraps DB, server, RabbitMQ, worker
+├── app.ts                 # Express app: middleware, route mounting, error handlers
+├── config/                # env validation, db, redis, rabbitmq, s3, soroban,
+│                          #   privy, dynamic (legacy EVM) clients
+├── controllers/           # request handlers, one per resource area
+│                          #   (auth, artist, song, album, marketplace, admin, AI, …)
 ├── dtos/                  # class-validator request shapes
-├── entities/               # TypeORM models: User, Song, Album, Genre, TransactionLog
-├── middlewares/             # authArtistMiddleware / authListenerMiddleware, validateDTO
-├── routes/                 # Express routers, one per resource
-├── services/                # business logic, including:
-│   ├── Artist/ArtistService.ts        # artist profile + on-chain setup
-│   ├── Soroban/SorobanService.ts       # generic prepare/submit relay
-│   ├── SongService.ts                  # upload pipeline + on-chain minting
-│   ├── AuthService.ts                  # wallet-signature + email/password auth
-│   └── UserService.ts
-├── workers/                # SongProcessorWorker (active), precomputeManifest
-├── seeders/                 # genre seeder, run on every boot
+├── entities/              # TypeORM models (~30: User, Song, Album, Genre,
+│                          #   TransactionLog, indexer/webhook/AI entities, …)
+├── middlewares/           # privy + legacy auth, rbac, rate limiting, idempotency
+├── routes/                # 42 Express routers, one per resource
+├── services/              # business logic grouped by domain:
+│   ├── Artist/, Song/, Soroban/   # profile, upload pipeline, on-chain relay/indexer
+│   ├── privy/                     # Privy token verification, sessions, webhooks
+│   ├── projections/, AI/          # on-chain projections, AI provider/usage
+│   └── top-level services         # AuthService, SongService, UserService, …
+├── workers/               # SongProcessorWorker, IndexerWorker, scheduler, AI jobs
+├── jobs/                  # scheduled jobs: account deletion, on-chain
+│                          #   reconciliation, scheduled release publish, …
+├── migrations/            # TypeORM migrations
+├── seeders/               # genre seeder, run on every boot
+├── cli/, scripts/         # operator CLIs (reindex, project) and ops scripts
 └── utils/, validators/, interfaces/
 ```
 
@@ -83,6 +88,11 @@ src/
 | **Album**          | One row per published album               | `songs: string[]` (song UUIDs)                                                                                                                                                                                                                                                                                  |
 | **Genre**          | Lookup table, seeded on boot              | —                                                                                                                                                                                                                                                                                                               |
 | **TransactionLog** | Audit trail of significant actions        | `action` (e.g. `CREATE_USER`, `SONG_PROCESSED`), `txHash`                                                                                                                                                                                                                                                       |
+
+The schema has grown well beyond these core tables — see `src/entities/` for
+the full set (users/saves/listening, playlists, comments, subscriptions,
+webhooks, indexer state, AI generation records, notification preferences,
+etc.). `docs/database-schema.md` documents the data model in detail.
 
 ## API Reference
 
