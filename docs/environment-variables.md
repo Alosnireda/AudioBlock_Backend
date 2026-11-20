@@ -33,10 +33,6 @@ Complete reference of all environment variables used by the AudioBlocks Backend.
 | `POSTGRES_USER`               | Yes      | —        | PostgreSQL username                             |
 | `POSTGRES_PASSWORD`           | Yes      | —        | PostgreSQL password                             |
 | `POSTGRES_DATABASE`           | Yes      | —        | Database name                                   |
-| `DB_POOL_MAX`                 | No       | `20`     | Maximum connections in the pool                 |
-| `DB_POOL_MIN`                 | No       | `5`      | Minimum idle connections maintained             |
-| `DB_CONNECTION_TIMEOUT_MS`    | No       | `30000`  | Timeout (ms) to acquire a connection            |
-| `DB_IDLE_TIMEOUT_MS`          | No       | `300000` | Time (ms) before an idle connection is released |
 | `DB_POOL_METRICS_INTERVAL_MS` | No       | `30000`  | Interval (ms) for pool metrics logging          |
 
 **Sensitive:** `POSTGRES_PASSWORD` — never log or commit.
@@ -240,14 +236,10 @@ _\* Required for the selected network. All five IDs must be set for the chosen `
 Song consumers use `WORKER_PREFETCH` (positive integer, default `1`) to bound
 unacknowledged deliveries and in-flight async processing. See the
 [worker scaling guide](worker-scaling.md) before raising it. The song consumer's
-attempt limit is currently hardcoded; the `WORKER_*` retry examples below are
-not read by that consumer.
+attempt limit is currently hardcoded.
 
 | Variable                   | Required | Default | Description                                         |
 | -------------------------- | -------- | ------- | --------------------------------------------------- |
-| `WORKER_MAX_ATTEMPTS`      | No       | `3`     | Max processing attempts before DLQ (song processor) |
-| `WORKER_BACKOFF_BASE_MS`   | No       | `2000`  | Base delay (ms) for exponential backoff             |
-| `WORKER_BACKOFF_MAX_MS`    | No       | `30000` | Maximum backoff delay (ms)                          |
 | `JOB_MAX_ATTEMPTS`         | No       | `3`     | Default max attempts per background job             |
 | `JOB_BACKOFF_BASE_MS`      | No       | `2000`  | Base backoff delay for job retries                  |
 | `JOB_BACKOFF_MAX_MS`       | No       | `30000` | Maximum backoff for job retries                     |
