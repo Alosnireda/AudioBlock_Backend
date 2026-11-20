@@ -756,8 +756,8 @@ npm run dev
 | `npm run test:load:stream`                            | Runs streaming endpoint load test (Issue #370, see `docs/LOAD_TESTING.md`)                                                      |
 | `npm run test:load:upload`                            | Runs chunked upload & finalize endpoint load test (Issue #371, see `docs/LOAD_TESTING.md`)                                      |
 | `npm run compose:check`                               | Validates that all docker-compose files are mutually consistent (Issue #404)                                                    |
-| `npm run env:check`                                   | Checks that `.env.example` lists every required var from `src/config/env.ts` (reports both missing and extra keys)              |
-| `npm run env:check:strict`                            | Same as above but fails on any extra key in `.env.example` (exact parity)                                                       |
+| `npm run env:check`                                   | Checks that `.env.example` stays in sync with `src/config/env.ts` and that every documented key is read by the code (strict)   |
+| `npm run env:check:strict`                            | Same as `env:check` (kept for explicitness)                                                                                     |
 
 ## Troubleshooting
 
