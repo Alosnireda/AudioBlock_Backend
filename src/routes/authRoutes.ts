@@ -4,6 +4,7 @@ import { privyMfaController } from '../controllers/PrivyMfaController';
 import { requireAuth } from '../middlewares/authMiddleware';
 import { requirePrivyAuth } from '../middlewares/privyMiddleware';
 import { requireLegacyEvmAuth } from '../middlewares/legacyEvmGate';
+import { isClosedBetaEnabled } from '../config/authFlags';
 import {
   authRateLimiter,
   nonceRateLimiter,
@@ -14,15 +15,45 @@ import {
 const authController = new AuthController();
 const router = Router();
 
+// Closed beta gate: when CLOSED_BETA=true, registration routes are closed.
+// A simple in-memory allowlist is used to permit specific email domains/IPs.
+// Admins can toggle the flag or manage the allowlist via environment.
+const closedBeta = isClosedBetaEnabled();
+
 // Apply IP+email-keyed rate limiting to all auth routes (Issue #29).
 // /nonce/:email gets its own, stricter limiter to prevent email enumeration.
 // The wallet-signature endpoints are legacy EVM auth and answer 410 unless
 // ENABLE_LEGACY_EVM_AUTH=true (Issue #809).
 router.get('/nonce/:email', requireLegacyEvmAuth, nonceRateLimiter, authController.getUserNonce);
-router.post('/register', requireLegacyEvmAuth, authRateLimiter, authController.register);
+
+function maybeClosedBetaGate(req: Request, res: Response, next: Function): void {
+  if (closedBeta) {
+    const allowlist: string[] = (process.env.CLOSED_BETA_ALLOWLIST || '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+    const email = req.body?.email || req.params?.email || '';
+    const isAllowed = allowlist.some((pattern) => {
+      if (pattern.includes('*')) return new RegExp('^' + pattern.replace(/\*/g, '.*') + '$').test(email);
+      return email === pattern || email.endsWith('@' + pattern);
+    });
+    if (!isAllowed) {
+      return res.status(403).json({
+        success: false,
+        message:
+          'Closed beta is active. Signups are currently closed. Contact an admin to be added to the allowlist.',
+        type: 'CLOSED_BETA_ACTIVE',
+      });
+    }
+  }
+  next();
+}
+
+router.post('/register', requireLegacyEvmAuth, closedBetaGate, authRateLimiter, authController.register);
 router.post(
   '/register-listener',
   requireLegacyEvmAuth,
+  closedBetaGate,
   authRateLimiter,
   authController.registerListener,
 );
@@ -30,7 +61,7 @@ router.post('/login', requireLegacyEvmAuth, authRateLimiter, authController.logi
 
 // Email + password auth (no wallet signature required) — coexists with the
 // wallet-signature flow above. Either path issues the same JWT shape.
-router.post('/register-email', authRateLimiter, authController.registerWithEmail);
+router.post('/register-email', closedBetaGate, authRateLimiter, authController.registerWithEmail);
 router.post('/login-email', authRateLimiter, authController.loginWithEmail);
 router.post('/refresh', authRateLimiter, authController.refreshToken);
 router.post('/logout', authRateLimiter, authController.logout);
