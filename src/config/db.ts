@@ -25,6 +25,7 @@ import { Release } from '../entities/Release';
 import { ReleaseTrack } from '../entities/ReleaseTrack';
 import { ArtistVerification } from '../entities/ArtistVerification';
 import { DeviceToken } from '../entities/DeviceToken';
+import { AdminAuditLog } from '../entities/AdminAuditLog';
 import { Release } from '../entities/Release';
 import { ReleaseTrack } from '../entities/ReleaseTrack';
 import { ReleasePreSave } from '../entities/ReleasePreSave';
@@ -73,6 +74,7 @@ const AppDataSource = new DataSource({
     ReleaseTrack,
     ReleasePreSave,
     UserSave,
+    AdminAuditLog,
   ],
   migrations: [__dirname + '/../migrations/*.{js,ts}'],
   migrationsTableName: 'migrations',

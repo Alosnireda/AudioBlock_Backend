@@ -780,6 +780,129 @@ paths:
           description: Validation error (bad body, unknown operation, ...).
         '413':
           description: Request body exceeds 100 KB batch limit.
+  /api/admin/users/{id}/suspend:
+    post:
+      summary: Suspend or ban a user account (admin)
+      description: >-
+        Restricts an account. A restricted account is refused on every authenticated
+        request until reinstated; the restriction is checked on each request, so it
+        takes effect without waiting for the user's token to expire. Requires the
+        `user:manage` permission (admins and super admins). Admin and super admin
+        accounts can only be restricted by a super admin, and admins cannot restrict
+        themselves. The action is written to the admin audit log.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Unique identifier (UUID) of the user to restrict.
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type, reason]
+              properties:
+                type:
+                  type: string
+                  enum: [suspended, banned]
+                reason:
+                  type: string
+                  minLength: 1
+                  maxLength: 500
+      responses:
+        '200':
+          description: Account restricted.
+        '400':
+          description: Validation failed, or the caller tried to restrict their own account.
+        '403':
+          description: Caller lacks `user:manage`, or may not restrict this user's role.
+        '404':
+          description: User not found.
+
+  /api/admin/users/{id}/reinstate:
+    post:
+      summary: Reinstate a suspended or banned user account (admin)
+      description: >-
+        Lifts a suspension or ban. Reinstating an active account is a no-op. Requires
+        the `user:manage` permission. Written to the admin audit log.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Unique identifier (UUID) of the user to reinstate.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Account reinstated.
+        '403':
+          description: Caller lacks `user:manage`.
+        '404':
+          description: User not found.
+
+  /api/admin/comments/{id}:
+    delete:
+      summary: Remove a comment regardless of its author (moderator)
+      description: >-
+        Removes a comment and its replies. Requires the `content:moderate` permission
+        (moderators and above). Written to the admin audit log.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Unique identifier (UUID) of the comment.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Comment removed.
+        '403':
+          description: Caller lacks `content:moderate`.
+        '404':
+          description: Comment not found.
+
+  /api/admin/audit-logs:
+    get:
+      summary: List admin audit log entries (admin)
+      description: >-
+        Paginated record of every mutating admin request, newest first, including
+        denied attempts (for which `actorId` is null when the caller was not
+        authenticated). Requires the `audit-log:view` permission.
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: actorId
+          in: query
+          required: false
+          description: Only return entries made by this admin (UUID).
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: A page of audit log entries.
+        '403':
+          description: Caller lacks `audit-log:view`.
+
 components:
   schemas:
     Song:

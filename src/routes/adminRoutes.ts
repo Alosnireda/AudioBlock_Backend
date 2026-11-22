@@ -11,8 +11,15 @@ import { AdminController } from '../controllers/AdminController';
 import { bulkModerationRateLimiter } from '../middlewares/bulkModerationRateLimiter';
 import { ResolveReportDTO } from '../dtos/ReportSongDTO';
 import { ResolveCommentReportDTO } from '../dtos/ReportCommentDTO';
+import { SuspendAccountDTO } from '../dtos/SuspendAccountDTO';
+import { AdminModerationController } from '../controllers/AdminModerationController';
+import { adminAuditMiddleware } from '../middlewares/adminAuditMiddleware';
 
 const router = Router();
+
+// Audit every mutating admin request, including ones that are then denied (#980).
+// Mounted first so the audit hook is registered before any route handler runs.
+router.use(adminAuditMiddleware);
 
 // RBAC (Issue #100): each route requires the specific permission it needs
 // rather than a blanket admin check. requirePermission returns 401 when the
@@ -128,6 +135,34 @@ router.get(
   '/users/:id/linked-accounts',
   requirePermission(Permission.ROLE_ASSIGN),
   AdminController.getLinkedAccounts,
+);
+
+// Account suspension and bans (#980) — admins only. A restricted account is
+// refused on every authenticated request until it is reinstated.
+router.post(
+  '/users/:id/suspend',
+  requirePermission(Permission.USER_MANAGE),
+  validateDTO(SuspendAccountDTO),
+  AdminModerationController.suspendUser,
+);
+router.post(
+  '/users/:id/reinstate',
+  requirePermission(Permission.USER_MANAGE),
+  AdminModerationController.reinstateUser,
+);
+
+// Content removal (#980) — moderators and above, whatever the comment's author.
+router.delete(
+  '/comments/:id',
+  requirePermission(Permission.CONTENT_MODERATE),
+  AdminModerationController.removeComment,
+);
+
+// Admin audit trail (#980) — admins only.
+router.get(
+  '/audit-logs',
+  requirePermission(Permission.AUDIT_LOG_VIEW),
+  AdminModerationController.listAuditLogs,
 );
 
 export default router;
