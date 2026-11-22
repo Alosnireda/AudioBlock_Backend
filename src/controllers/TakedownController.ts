@@ -31,8 +31,13 @@ export class TakedownController {
 
   static list = async (req: Request, res: Response) => {
     try {
-      const { status, songId } = req.query as any;
-      const data = await takedownService.listRequests({ status, songId });
+      const { status, songId, overdue } = req.query as any;
+      // `?overdue=true` narrows to pending requests past their review deadline (#981).
+      const data = await takedownService.listRequests({
+        status,
+        songId,
+        overdue: overdue === 'true',
+      });
       return res.status(200).json({ success: true, data });
     } catch (error) {
       handleError(res, error);
@@ -64,6 +69,27 @@ export class TakedownController {
       }
       const updated = await takedownService.reviewRequest(id, adminId, action, reviewNotes);
       return res.status(200).json({ success: true, data: updated });
+    } catch (error: any) {
+      if (error.statusCode === 404)
+        return res.status(404).json({ success: false, message: error.message });
+      handleError(res, error);
+    }
+  };
+
+  /**
+   * POST /api/takedown/:id/counter-notice — the artist disputes an approved
+   * takedown of their own song (#981). Ownership and deadlines are enforced by
+   * the service.
+   */
+  static submitCounterNotice = async (req: Request, res: Response) => {
+    try {
+      const artistId = (req as any).user?.id;
+      if (!artistId) return res.status(401).json({ success: false, message: 'Unauthorized' });
+
+      const id = req.params.id as string;
+      const { statement } = req.body;
+      const data = await takedownService.submitCounterNotice(id, artistId, statement);
+      return res.status(201).json({ success: true, data });
     } catch (error: any) {
       if (error.statusCode === 404)
         return res.status(404).json({ success: false, message: error.message });

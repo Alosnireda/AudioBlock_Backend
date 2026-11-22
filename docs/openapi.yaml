@@ -903,6 +903,78 @@ paths:
         '403':
           description: Caller lacks `audit-log:view`.
 
+  /api/takedown/{id}/counter-notice:
+    post:
+      summary: File a counter-notice against an approved takedown (artist)
+      description: >-
+        The artist who owns the song can dispute an approved takedown. Filed once,
+        and only before the counter-notice window closes (14 days after approval).
+        Filing it does not change the takedown's status; an admin still decides
+        whether to reverse it. Returns 403 when the caller does not own the song,
+        409 when the takedown is not approved, a counter-notice already exists, or
+        the window has closed.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Unique takedown request identifier (UUID).
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [statement]
+              properties:
+                statement:
+                  type: string
+                  minLength: 1
+                  maxLength: 5000
+      responses:
+        '201':
+          description: Counter-notice filed.
+        '400':
+          description: Statement missing, blank, or too long.
+        '403':
+          description: Caller does not own the song.
+        '404':
+          description: Takedown request not found.
+        '409':
+          description: Takedown not approved, counter-notice already filed, or window closed.
+
+  /api/takedown:
+    get:
+      summary: List takedown requests (admin)
+      description: >-
+        Admin-only. Filter by status or song. `overdue=true` returns pending requests
+        whose review deadline (3 days after filing) has passed. Requests filed before
+        deadlines existed have no deadline and are never returned as overdue.
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [pending, approved, rejected, reversed]
+        - name: songId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: overdue
+          in: query
+          required: false
+          description: Set to true to return only overdue pending requests.
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Takedown requests.
+
 components:
   schemas:
     Song:
