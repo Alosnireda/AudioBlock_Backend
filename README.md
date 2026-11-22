@@ -107,8 +107,9 @@ appropriate role (`authArtistMiddleware` for artist-only routes).
 | POST   | `/register`          | —                                        | Wallet-signature signup (`role`, `walletAddress`, `signature`, `message`, `email`, `username`) |
 | POST   | `/register-listener` | —                                        | Same as above, listener-oriented, no `username` required                                       |
 | POST   | `/login`             | —                                        | Wallet-signature login                                                                         |
-| POST   | `/register-email`    | —                                        | Email + password signup                                                                        |
+| POST   | `/register-email`    | —                                        | Email + password signup. Requires `dateOfBirth` (`YYYY-MM-DD`), checked against the minimum age ([AGE_POLICY.md](docs/AGE_POLICY.md)) |
 | POST   | `/login-email`       | —                                        | Email + password login                                                                         |
+| POST   | `/resend-verification` | —                                      | Sends a fresh email verification link. Always returns the same generic message. Rate limited ([RATE_LIMITING.md](docs/RATE_LIMITING.md)) |
 | POST   | `/2fa/enable`        | any authenticated email/password account | Enables TOTP 2FA and returns QR/secret plus backup codes                                       |
 
 ### Artist — `/api/artist`

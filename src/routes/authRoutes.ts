@@ -7,8 +7,10 @@ import { requireLegacyEvmAuth } from '../middlewares/legacyEvmGate';
 import { isClosedBetaEnabled } from '../config/authFlags';
 import {
   authRateLimiter,
+  emailVerificationRateLimiter,
   nonceRateLimiter,
   passwordResetRateLimiter,
+  resendVerificationRateLimiter,
   twoFactorRateLimiter,
 } from '../middlewares/authRateLimiter';
 
@@ -78,8 +80,14 @@ router.post('/2fa/validate', authRateLimiter, authController.validateTwoFactor);
 router.get('/mfa/status', authRateLimiter, privyMfaController.status);
 router.post('/mfa/sessions/revoke', authRateLimiter, privyMfaController.revokeSessions);
 
-// Email verification
-router.get('/verify-email/:token', authController.verifyEmail);
+// Email verification (issue PROD-04). The verify link is rate limited per IP. Resend is
+// limited to 3 per hour per address and always answers with the same generic message.
+router.get('/verify-email/:token', emailVerificationRateLimiter, authController.verifyEmail);
+router.post(
+  '/resend-verification',
+  resendVerificationRateLimiter,
+  authController.resendVerificationEmail,
+);
 
 // Password reset
 // /forgot-password is throttled to 3 requests/hour/email (Issue #102) to prevent

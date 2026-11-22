@@ -29,6 +29,7 @@ import { Release } from '../entities/Release';
 import { ReleaseTrack } from '../entities/ReleaseTrack';
 import { ReleasePreSave } from '../entities/ReleasePreSave';
 import { UserSave } from '../entities/UserSave';
+import { EmailSuppression } from '../entities/EmailSuppression';
 
 dotenv.config();
 
@@ -73,6 +74,7 @@ const AppDataSource = new DataSource({
     ReleaseTrack,
     ReleasePreSave,
     UserSave,
+    EmailSuppression,
   ],
   migrations: [__dirname + '/../migrations/*.{js,ts}'],
   migrationsTableName: 'migrations',
