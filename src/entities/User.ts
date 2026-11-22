@@ -194,6 +194,20 @@ export class User {
   @Column({ nullable: true })
   deletionReason?: string;
 
+  // ── Payout compliance hold (#985) ───────────────────────────────────────────
+  // While set, the account is excluded from royalty payouts. Placed by sanctions
+  // screening or an admin; cleared only by an admin. `varchar` is explicit because
+  // the `string | null` union would otherwise be inferred as Object (see
+  // docs/migrations.md).
+
+  /** Why payouts are held, or null when the account is not on hold. */
+  @Column({ type: 'varchar', nullable: true })
+  payoutHoldReason?: string | null;
+
+  /** When the current payout hold was placed, or null when there is none. */
+  @Column({ type: 'timestamp', nullable: true })
+  payoutHoldPlacedAt?: Date | null;
+
   @CreateDateColumn()
   createdAt!: Date;
 

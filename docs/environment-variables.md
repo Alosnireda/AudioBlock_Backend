@@ -21,6 +21,7 @@ Complete reference of all environment variables used by the AudioBlocks Backend.
 - [Worker / Job Queue](#worker--job-queue)
 - [Server](#server)
 - [CORS](#cors)
+- [Compliance](#compliance)
 
 ---
 
@@ -270,6 +271,24 @@ attempt limit is currently hardcoded.
 ```
 ALLOWED_ORIGINS=https://listener.audioblockz.com,https://artist.audioblockz.com
 ```
+
+---
+
+## Compliance
+
+Used by royalty payout screening (#985) and the public takedown policy (#986).
+See [SANCTIONS_SCREENING.md](./SANCTIONS_SCREENING.md) and
+[DMCA_TAKEDOWN_POLICY.md](./DMCA_TAKEDOWN_POLICY.md).
+
+| Variable                          | Required | Default    | Description                                                                                                       |
+| --------------------------------- | -------- | ---------- | ----------------------------------------------------------------------------------------------------------------- |
+| `SANCTIONS_SCREENING_PROVIDER`    | No       | `denylist` | Screening provider for payout recipients. Only `denylist` is built in. Any other value blocks payouts (fail closed). |
+| `SANCTIONS_DENYLIST`              | No       | empty      | Comma-separated Stellar public keys (`G...`) that payouts must never reach.                                       |
+| `DMCA_AGENT_NAME`                 | No       | empty      | Designated DMCA agent name. Published at `GET /api/takedown/policy`.                                              |
+| `DMCA_AGENT_EMAIL`                | No       | empty      | Designated DMCA agent contact email. Published.                                                                   |
+| `DMCA_AGENT_ADDRESS`              | No       | empty      | Designated DMCA agent postal address. Published.                                                                  |
+| `DMCA_AGENT_REGISTRATION_NUMBER`  | No       | empty      | Registration number from the U.S. Copyright Office designation. The agent is reported as `recorded` only when all four `DMCA_AGENT_*` required fields are set. |
+| `DMCA_AGENT_REGISTERED_AT`        | No       | empty      | ISO 8601 date the designation was filed. Published when set.                                                      |
 
 ---
 
