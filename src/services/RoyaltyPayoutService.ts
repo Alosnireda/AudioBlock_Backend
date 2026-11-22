@@ -8,6 +8,7 @@ import { SorobanService } from './Soroban/SorobanService';
 import { royaltiesPaidTotal } from './MetricsService';
 import { RoyaltyPayoutEvent } from '../types';
 import { NotificationService } from './NotificationService';
+import { PayoutEligibilityService } from './PayoutEligibilityService';
 import logger from '../config/logger';
 
 export interface CreateRoyaltyPayoutInput {
@@ -80,10 +81,18 @@ export class RoyaltyPayoutService {
    * Record an expected royalty payout from a marketplace sale. Creates a
    * pending payout record with the expected split amounts.
    *
+   * A payout for an artist who is not yet verified is recorded with
+   * `heldUntilVerified = true` (#979) and is released once verification is
+   * approved. Payouts with no artist have nobody to verify and are not held.
+   *
    * @param input - Payout details including sale event ID, split recipients, and amounts.
    * @returns The persisted RoyaltyPayout entity with status PENDING.
    */
   async recordExpectedPayout(input: CreateRoyaltyPayoutInput): Promise<RoyaltyPayout> {
+    const heldUntilVerified = input.artistId
+      ? !(await PayoutEligibilityService.isArtistVerified(input.artistId))
+      : false;
+
     const payout = this.royaltyPayoutRepo.create({
       saleEventId: input.saleEventId,
       saleTxHash: input.saleTxHash,
@@ -96,6 +105,7 @@ export class RoyaltyPayoutService {
       grossAmount: input.grossAmount,
       expectedSplits: input.expectedSplits,
       status: RoyaltyPayoutStatus.PENDING,
+      heldUntilVerified,
     });
 
     await this.royaltyPayoutRepo.save(payout);
@@ -108,10 +118,14 @@ export class RoyaltyPayoutService {
         await new NotificationService().create({
           userId: input.artistId,
           type: 'royalty_payout',
-          title: 'Royalty payout recorded',
-          message: `A royalty payout of ${input.grossAmount} ${
-            input.currency || 'stroops'
-          } was recorded for your music.`,
+          title: heldUntilVerified ? 'Royalty payout on hold' : 'Royalty payout recorded',
+          message: heldUntilVerified
+            ? `A royalty payout of ${input.grossAmount} ${
+                input.currency || 'stroops'
+              } is on hold until your artist verification is approved.`
+            : `A royalty payout of ${input.grossAmount} ${
+                input.currency || 'stroops'
+              } was recorded for your music.`,
           data: { saleEventId: input.saleEventId, songId: input.songId },
         });
       } catch (err) {
