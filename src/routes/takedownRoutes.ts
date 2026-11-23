@@ -3,7 +3,11 @@ import { TakedownController } from '../controllers/TakedownController';
 import { requireAuth, requireRoles } from '../middlewares/authMiddleware';
 import { UserRole } from '../entities/User';
 import { validateDTO } from '../middlewares/validate';
-import { CreateTakedownRequestDTO, ReviewTakedownRequestDTO } from '../dtos/TakedownRequestDTO';
+import {
+  CounterNoticeTakedownDTO,
+  CreateTakedownRequestDTO,
+  ReviewTakedownRequestDTO,
+} from '../dtos/TakedownRequestDTO';
 
 const router = Router();
 

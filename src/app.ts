@@ -6,7 +6,7 @@ import express, {
   ErrorRequestHandler,
 } from "express";
 import logger from "./config/logger";
-import { requestLoggerMiddleware } from "./middlewares/requestLogger";
+import { requestLoggerMiddleware, redactWebhookSecretPath } from "./middlewares/requestLogger";
 import { sanitizeInput } from "./middlewares/sanitizeInput";
 import cors from "cors";
 import authRoutes from "./routes/authRoutes";
@@ -34,6 +34,7 @@ import activityStreamRoutes from "./routes/activityStreamRoutes";
 import accountRoutes from "./routes/accountRoutes";
 import metricsRoutes from "./routes/metricsRoutes";
 import privyWebhookRoutes from "./routes/privyWebhookRoutes";
+import emailEventRoutes from "./routes/emailEventRoutes";
 import accountTypeRoutes from "./routes/accountTypeRoutes";
 import healthRoutes from "./routes/healthRoutes";
 import notificationRoutes from "./routes/notificationRoutes";
@@ -139,6 +140,8 @@ app.use("/api/admin", adminRoutes);
 
 // Webhook subscriptions (third-party event delivery)
 app.use("/api/webhooks", webhookRoutes);
+// Email provider bounce/complaint webhook. Secret-in-path, fails closed (issue PROD-03).
+app.use("/api/email-events", emailEventRoutes);
 
 // Copyright takedown workflow (distinct from general moderation)
 app.use("/api/takedown", takedownRoutes);
@@ -204,7 +207,12 @@ app.use("/metrics", metricsRoutes);
 // Error handling middleware
 const customErrorHandler: ErrorRequestHandler = (err, req, res, _next) => {
   logger.error(
-    { reqId: (req as any).id, err, route: req.originalUrl, method: req.method },
+    {
+      reqId: (req as any).id,
+      err,
+      route: redactWebhookSecretPath(req.originalUrl),
+      method: req.method,
+    },
     "Unhandled error"
   );
 

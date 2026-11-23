@@ -195,8 +195,17 @@ _\* Required for the selected network. All five IDs must be set for the chosen `
 | `EMAIL_PROVIDER` | No       | `resend`                  | Email provider: `resend` or `sendgrid`  |
 | `EMAIL_API_KEY`  | Yes      | —                         | API key for the selected email provider |
 | `EMAIL_FROM`     | No       | `noreply@audioblocks.com` | Sender email address                    |
+| `EMAIL_EVENTS_WEBHOOK_SECRET` | No | — (endpoint disabled) | Shared secret in the bounce/complaint webhook path, `POST /api/email-events/<secret>`. See [EMAIL_DELIVERABILITY.md](EMAIL_DELIVERABILITY.md). |
 
-**Sensitive:** `EMAIL_API_KEY` — never log or commit.
+**Sensitive:** `EMAIL_API_KEY` and `EMAIL_EVENTS_WEBHOOK_SECRET`: never log or commit. The webhook secret appears in the request path, so proxy access logs must redact it.
+
+---
+
+## Age policy
+
+| Variable             | Required | Default | Description                                                                                                |
+| -------------------- | -------- | ------- | ---------------------------------------------------------------------------------------------------------- |
+| `MINIMUM_SIGNUP_AGE` | No       | `18`    | Minimum age to create an account, 13 to 99. Unset or invalid falls back to 18. See [AGE_POLICY.md](AGE_POLICY.md). |
 
 ---
 

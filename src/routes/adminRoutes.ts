@@ -16,6 +16,10 @@ import { SetPayoutHoldDTO } from '../dtos/SetPayoutHoldDTO';
 
 const router = Router();
 
+// Audit every mutating admin request, including ones that are then denied (#980).
+// Mounted first so the audit hook is registered before any route handler runs.
+router.use(adminAuditMiddleware);
+
 // RBAC (Issue #100): each route requires the specific permission it needs
 // rather than a blanket admin check. requirePermission returns 401 when the
 // caller is unauthenticated and 403 when the role lacks the permission.

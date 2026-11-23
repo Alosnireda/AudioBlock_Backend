@@ -15,6 +15,7 @@ import { ArtistVerification, VerificationStatus } from '../entities/ArtistVerifi
 import { User, UserRole } from '../entities/User';
 import { UserFollow } from '../entities/UserFollow';
 import { Song } from '../entities/Song';
+import { RoyaltyPayout } from '../entities/RoyaltyPayout';
 
 const mockVerificationRepo = {
   create: jest.fn(),
@@ -27,6 +28,11 @@ const mockUserRepo = {
   findOne: jest.fn(),
   findOneBy: jest.fn(),
   update: jest.fn(),
+};
+
+// Approval releases payouts held for the artist (#979).
+const mockPayoutRepo = {
+  update: jest.fn(async () => ({ affected: 0 })),
 };
 
 const mockFollowRepo = {
@@ -53,6 +59,7 @@ beforeEach(() => {
     if (entity === User) return mockUserRepo;
     if (entity === UserFollow) return mockFollowRepo;
     if (entity === Song) return mockSongRepo;
+    if (entity === RoyaltyPayout) return mockPayoutRepo;
     return mockVerificationRepo;
   });
 
