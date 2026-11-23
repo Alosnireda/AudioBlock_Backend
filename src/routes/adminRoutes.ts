@@ -11,9 +11,8 @@ import { AdminController } from '../controllers/AdminController';
 import { bulkModerationRateLimiter } from '../middlewares/bulkModerationRateLimiter';
 import { ResolveReportDTO } from '../dtos/ReportSongDTO';
 import { ResolveCommentReportDTO } from '../dtos/ReportCommentDTO';
-import { SuspendAccountDTO } from '../dtos/SuspendAccountDTO';
-import { AdminModerationController } from '../controllers/AdminModerationController';
-import { adminAuditMiddleware } from '../middlewares/adminAuditMiddleware';
+import { SupportController } from '../controllers/SupportController';
+import { SetPayoutHoldDTO } from '../dtos/SetPayoutHoldDTO';
 
 const router = Router();
 
@@ -137,32 +136,20 @@ router.get(
   AdminController.getLinkedAccounts,
 );
 
-// Account suspension and bans (#980) — admins only. A restricted account is
-// refused on every authenticated request until it is reinstated.
-router.post(
-  '/users/:id/suspend',
-  requirePermission(Permission.USER_MANAGE),
-  validateDTO(SuspendAccountDTO),
-  AdminModerationController.suspendUser,
-);
-router.post(
-  '/users/:id/reinstate',
-  requirePermission(Permission.USER_MANAGE),
-  AdminModerationController.reinstateUser,
-);
-
-// Content removal (#980) — moderators and above, whatever the comment's author.
-router.delete(
-  '/comments/:id',
-  requirePermission(Permission.CONTENT_MODERATE),
-  AdminModerationController.removeComment,
-);
-
-// Admin audit trail (#980) — admins only.
+// Support user lookup (#983) — read-only and audited. Admins and super_admins only.
 router.get(
-  '/audit-logs',
-  requirePermission(Permission.AUDIT_LOG_VIEW),
-  AdminModerationController.listAuditLogs,
+  '/users/lookup',
+  requirePermission(Permission.USER_MANAGE),
+  SupportController.lookupUser,
+);
+
+// Payout compliance hold (#985) — places or clears a hold that excludes the
+// account from royalty payouts. Every change is audited.
+router.put(
+  '/users/:id/payout-hold',
+  requirePermission(Permission.USER_MANAGE),
+  validateDTO(SetPayoutHoldDTO),
+  SupportController.setPayoutHold,
 );
 
 export default router;

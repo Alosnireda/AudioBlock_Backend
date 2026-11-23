@@ -19,14 +19,9 @@ router.post(
   TakedownController.create,
 );
 
-// The artist of the song can dispute an approved takedown (#981). The service
-// checks that the caller owns the song and that the window is still open.
-router.post(
-  '/:id/counter-notice',
-  requireAuth,
-  validateDTO(CounterNoticeTakedownDTO),
-  TakedownController.submitCounterNotice,
-);
+// Public: takedown policy and DMCA agent details (#986). Registered before the
+// admin `/:id` route below, otherwise "policy" would be matched as an id.
+router.get('/policy', TakedownController.getPolicy);
 
 // Admin-only: list, get, review
 router.get('/', requireRoles(UserRole.ADMIN), TakedownController.list);

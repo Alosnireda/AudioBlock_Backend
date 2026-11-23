@@ -2,10 +2,20 @@ import { Request, Response } from 'express';
 import { TakedownService } from '../services/TakedownService';
 import { TakedownReason } from '../entities/TakedownRequest';
 import { handleError } from '../utils/helpers';
+import { getTakedownPolicy } from '../services/TakedownPolicyService';
 
 const takedownService = new TakedownService();
 
 export class TakedownController {
+  /**
+   * GET /api/takedown/policy — public takedown policy and DMCA designated-agent
+   * details (#986). Requires no account, so rights holders can find the process.
+   */
+  static getPolicy = (_req: Request, res: Response) => {
+    res.set('Cache-Control', 'public, max-age=300');
+    return res.status(200).json({ success: true, data: getTakedownPolicy() });
+  };
+
   static create = async (req: Request, res: Response) => {
     try {
       const requestedBy = (req as any).user?.id;
