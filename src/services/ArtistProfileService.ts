@@ -17,6 +17,7 @@ import {
 import { AppError } from '../errors/AppError';
 import { ERROR_MESSAGES } from '../config/constants';
 import { validateStringLength, validateUUID } from '../validators/ServiceValidator';
+import { PayoutEligibilityService } from './PayoutEligibilityService';
 
 /** Default page size for the admin verification queue. */
 const DEFAULT_VERIFICATION_LIMIT = 20;
@@ -281,6 +282,8 @@ export class ArtistProfileService {
 
     const saved = await this.verificationRepo.save(verification);
     await this.userRepo.update({ id: verification.userId }, { isVerified: true });
+    // Payouts recorded while the artist was unverified are released now (#979).
+    await PayoutEligibilityService.releaseHeldPayouts(verification.userId);
 
     return this.toVerificationView(saved);
   }
