@@ -17,6 +17,7 @@ import redis from '../config/redis';
 import logger from '../config/logger';
 import { Job, JobQueueService } from '../services/JobQueueService';
 import { EmailService } from '../services/EmailService';
+import { EmailSuppressionService } from '../services/EmailSuppressionService';
 
 type JobHandler = (job: Job) => Promise<void>;
 
@@ -134,9 +135,18 @@ export interface EmailJobPayload {
  * Email job handler (Issue #798).
  * Sends transactional emails with retry on 5xx/timeouts, no retry on 4xx
  * (bad address), and logs provider message ID on success.
+ * Addresses on the suppression list (hard bounce, complaint, provider drop) are
+ * skipped without a send (issue PROD-03). A failed suppression lookup throws, so
+ * the job retries instead of sending blind.
  */
 async function handleEmailJob(job: Job<EmailJobPayload>): Promise<void> {
   const { to, subject, html } = job.payload;
+
+  if (await new EmailSuppressionService().isSuppressed(to)) {
+    logger.info({ jobId: job.id, subject }, 'Email skipped: recipient is suppressed');
+    return;
+  }
+
   const emailService = new EmailService();
 
   try {
