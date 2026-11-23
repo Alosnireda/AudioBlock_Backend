@@ -3,7 +3,11 @@ import { TakedownController } from '../controllers/TakedownController';
 import { requireAuth, requireRoles } from '../middlewares/authMiddleware';
 import { UserRole } from '../entities/User';
 import { validateDTO } from '../middlewares/validate';
-import { CreateTakedownRequestDTO, ReviewTakedownRequestDTO } from '../dtos/TakedownRequestDTO';
+import {
+  CounterNoticeTakedownDTO,
+  CreateTakedownRequestDTO,
+  ReviewTakedownRequestDTO,
+} from '../dtos/TakedownRequestDTO';
 
 const router = Router();
 
@@ -13,6 +17,15 @@ router.post(
   requireAuth,
   validateDTO(CreateTakedownRequestDTO),
   TakedownController.create,
+);
+
+// The artist of the song can dispute an approved takedown (#981). The service
+// checks that the caller owns the song and that the window is still open.
+router.post(
+  '/:id/counter-notice',
+  requireAuth,
+  validateDTO(CounterNoticeTakedownDTO),
+  TakedownController.submitCounterNotice,
 );
 
 // Admin-only: list, get, review
